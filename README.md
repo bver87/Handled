@@ -12,6 +12,7 @@ Docker-versie van de SwiftUI-app `Handled`, bedoeld voor privegebruik op een eig
 - Login met aparte overzichten per gebruiker
 - Wachtwoord-reset via tijdelijke resetlink in de serverlogs
 - Taken delen met andere gebruikers via e-mailadres
+- Installeerbaar op telefoon als PWA via `Zet op beginscherm`
 - JSON-opslag in `/data/handled.json`
 
 ## Bestanden
@@ -129,6 +130,22 @@ docker compose logs -f
 4. Kopieer de resetlink uit de logregel die begint met `[Handled] Wachtwoord reset`.
 
 De resetlink is 30 minuten geldig en wordt alleen gehasht opgeslagen in `/data/handled.json`.
+
+## Op Beginscherm Zetten
+
+Op iPhone:
+
+1. Open de app in Safari.
+2. Tik op delen.
+3. Kies `Zet op beginscherm`.
+
+Op Android:
+
+1. Open de app in Chrome.
+2. Open het menu.
+3. Kies `App installeren` of `Toevoegen aan startscherm`.
+
+Voor installatie op iPhone werkt dit het beste via HTTPS, bijvoorbeeld achter een reverse proxy met een eigen domein.
 
 ## Backup
 

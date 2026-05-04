@@ -1,0 +1,19 @@
+{
+  "name": "Handled",
+  "short_name": "Handled",
+  "description": "Houd terugkerende taken bij en deel ze met anderen.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f5f7f8",
+  "theme_color": "#2563eb",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/handled.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
