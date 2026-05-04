@@ -1,5 +1,9 @@
 const state = {
+  user: null,
+  hasUsers: false,
+  allowRegistration: true,
   settings: { leadTimeDays: 0 },
+  users: [],
   categories: [],
   tasks: [],
   logs: [],
@@ -32,12 +36,13 @@ const icons = [
 
 const iconGlyphs = {
   "tray.full": "▣",
+  "person.2": "☷",
+  "eurosign.circle": "€",
   folder: "▰",
   house: "⌂",
   wrench: "⚙",
   clock: "◷",
   heart: "♡",
-  "person.2": "☷",
   leaf: "♧",
   tree: "♤",
   car: "▱",
@@ -52,18 +57,18 @@ const iconGlyphs = {
   washer: "◉",
   dryer: "◎",
   drop: "◌",
-  bolt: "ϟ",
-  "eurosign.circle": "€"
+  bolt: "ϟ"
 };
 
 const iconNames = {
   "tray.full": "Alle taken",
+  "person.2": "Personen",
+  "eurosign.circle": "Euro",
   folder: "Map",
   house: "Huis",
   wrench: "Gereedschap",
   clock: "Klok",
   heart: "Hart",
-  "person.2": "Personen",
   leaf: "Blad",
   tree: "Boom",
   car: "Auto",
@@ -78,31 +83,89 @@ const iconNames = {
   washer: "Wasmachine",
   dryer: "Droger",
   drop: "Druppel",
-  bolt: "Bliksem",
-  "eurosign.circle": "Euro"
+  bolt: "Bliksem"
 };
 
 const app = document.querySelector("#app");
 const dialog = document.querySelector("#modal");
 const modalForm = document.querySelector("#modal-form");
 
-async function api(path, options = {}) {
+async function requestJson(path, options = {}) {
   const response = await fetch(path, {
     headers: { "Content-Type": "application/json" },
     ...options,
     body: options.body ? JSON.stringify(options.body) : undefined
   });
   const payload = await response.json();
-  if (!response.ok) throw new Error(payload.error || "Actie mislukt");
+  if (!response.ok) {
+    if (response.status === 401) {
+      state.user = null;
+      renderAuth();
+    }
+    throw new Error(payload.error || "Actie mislukt");
+  }
+  return payload;
+}
+
+async function api(path, options = {}) {
+  const payload = await requestJson(path, options);
   Object.assign(state, payload);
   render();
 }
 
 async function load() {
+  const auth = await requestJson("/api/auth/me");
+  Object.assign(state, auth);
+  if (!state.user) {
+    renderAuth();
+    return;
+  }
   await api("/api/state");
 }
 
+function renderAuth(mode = state.hasUsers ? "login" : "register", error = "") {
+  const isRegister = mode === "register";
+  app.innerHTML = `
+    <main class="auth-shell">
+      <section class="auth-panel">
+        <div class="auth-brand">
+          <img src="/handled.png" alt="">
+          <div>
+            <h1>Handled</h1>
+            <p>${isRegister ? "Maak je account aan." : "Log in op je overzicht."}</p>
+          </div>
+        </div>
+        ${error ? `<div class="form-error">${escapeHtml(error)}</div>` : ""}
+        <form class="auth-form" data-auth-form="${isRegister ? "register" : "login"}">
+          ${isRegister ? `
+            <label>Naam
+              <input name="name" autocomplete="name" required>
+            </label>
+          ` : ""}
+          <label>E-mail
+            <input name="email" type="email" autocomplete="email" required>
+          </label>
+          <label>Wachtwoord
+            <input name="password" type="password" autocomplete="${isRegister ? "new-password" : "current-password"}" minlength="8" required>
+          </label>
+          <button class="primary" type="submit">${isRegister ? "Account maken" : "Inloggen"}</button>
+        </form>
+        ${state.allowRegistration ? `
+          <button class="ghost auth-switch" data-auth-mode="${isRegister ? "login" : "register"}">
+            ${isRegister ? "Ik heb al een account" : "Nieuw account maken"}
+          </button>
+        ` : ""}
+      </section>
+    </main>
+  `;
+}
+
 function render() {
+  if (!state.user) {
+    renderAuth();
+    return;
+  }
+
   const selectedCategory = state.categories.find(category => category.id === state.selectedCategoryId);
   const visibleTasks = sortedTasks(tasksForSelectedCategory());
   const selectedTask = state.tasks.find(task => task.id === state.selectedTaskId);
@@ -115,6 +178,8 @@ function render() {
           <img src="/handled.png" alt="">
           <h1>Handled</h1>
         </div>
+        <span class="user-pill">${escapeHtml(state.user.email)}</span>
+        <button class="secondary" data-action="logout">Uitloggen</button>
         <button class="secondary" data-action="add-category">Categorie</button>
         <button class="primary" data-action="add-task">Taak</button>
       </header>
@@ -126,15 +191,16 @@ function render() {
           </div>
           <div class="category-list">
             ${categoryRow({ id: "all", name: "Alle taken", icon: "tray.full", colorName: "blue" }, state.tasks)}
+            ${categoryRow({ id: "shared", name: "Gedeeld met mij", icon: "person.2", colorName: "teal" }, sharedWithMeTasks())}
             ${state.categories.map(category => categoryRow(category, tasksForCategory(category.id))).join("")}
-            ${state.categories.length ? "" : `<div class="empty">Nog geen categorieën.</div>`}
+            ${state.categories.length ? "" : `<div class="empty">Nog geen eigen categorieën.</div>`}
           </div>
         </aside>
 
         <section class="panel">
           <div class="panel-head">
             <div class="detail-title">
-              <h2>${escapeHtml(selectedCategory?.name || "Alle taken")}</h2>
+              <h2>${escapeHtml(detailTitle(selectedCategory))}</h2>
               <span>${visibleTasks.length} ${visibleTasks.length === 1 ? "taak" : "taken"}</span>
             </div>
             ${selectedCategory ? `
@@ -153,6 +219,11 @@ function render() {
       </section>
     </main>
   `;
+}
+
+function detailTitle(selectedCategory) {
+  if (state.selectedCategoryId === "shared") return "Gedeeld met mij";
+  return selectedCategory?.name || "Alle taken";
 }
 
 function categoryRow(category, tasks) {
@@ -181,7 +252,12 @@ function statusCell(color, value) {
 
 function taskRow(task) {
   const status = computeStatus(task);
-  const category = state.categories.find(item => item.id === task.categoryId);
+  const category = task.category || state.categories.find(item => item.id === task.categoryId);
+  const sharedLabel = task.isOwner && task.sharedUsers.length
+    ? `Gedeeld met ${task.sharedUsers.map(user => user.email).join(", ")}`
+    : "";
+  const ownerLabel = task.isOwner ? "Eigen taak" : `Van ${task.owner?.email || "onbekend"}`;
+
   return `
     <article class="task-row">
       <div>
@@ -191,14 +267,17 @@ function taskRow(task) {
           <span>Volgende: ${nextDueText(task.nextDue)}</span>
           <span>Elke ${task.intervalValue} ${unitLabel(task.intervalUnit)}</span>
           ${category ? `<span>${escapeHtml(category.name)}</span>` : ""}
+          <span>${escapeHtml(ownerLabel)}</span>
+          ${sharedLabel ? `<span>${escapeHtml(sharedLabel)}</span>` : ""}
         </div>
         <span class="status ${status.color}">${status.label}</span>
       </div>
       <div class="actions">
         <button class="secondary" data-action="logs" data-id="${task.id}">Logboek</button>
-        <button class="secondary" data-action="edit-task" data-id="${task.id}">Bewerk</button>
+        ${task.isOwner ? `<button class="secondary" data-action="share-task" data-id="${task.id}">Delen</button>` : ""}
+        ${task.isOwner ? `<button class="secondary" data-action="edit-task" data-id="${task.id}">Bewerk</button>` : ""}
         <button class="primary" data-action="done" data-id="${task.id}">Net gedaan</button>
-        <button class="danger" data-action="delete-task" data-id="${task.id}">Verwijder</button>
+        ${task.isOwner ? `<button class="danger" data-action="delete-task" data-id="${task.id}">Verwijder</button>` : ""}
       </div>
     </article>
   `;
@@ -247,18 +326,22 @@ function logPanel(task) {
 
 function logRow(log) {
   const late = log.daysLate > 0;
+  const user = state.users.find(item => item.id === log.userId);
   return `
     <div class="log-row ${late ? "late" : "ontime"}">
       <div>
         <div class="task-title">${formatDateTime(log.doneAt)}</div>
-        <div class="task-meta">${late ? `${log.daysLate} dag(en) te laat` : "Op tijd"}</div>
+        <div class="task-meta">
+          <span>${late ? `${log.daysLate} dag(en) te laat` : "Op tijd"}</span>
+          ${user ? `<span>Door ${escapeHtml(user.email)}</span>` : ""}
+        </div>
       </div>
     </div>
   `;
 }
 
 function openTaskModal(task = null) {
-  const selectedCategoryId = task?.categoryId || (state.selectedCategoryId !== "all" ? state.selectedCategoryId : "");
+  const selectedCategoryId = task?.categoryId || (state.selectedCategoryId !== "all" && state.selectedCategoryId !== "shared" ? state.selectedCategoryId : "");
   modalForm.innerHTML = `
     <div class="modal-head">
       <h3>${task ? "Taak wijzigen" : "Nieuwe taak"}</h3>
@@ -334,6 +417,43 @@ function openCategoryModal(category = null) {
   dialog.showModal();
 }
 
+function openShareModal(task) {
+  modalForm.innerHTML = `
+    <div class="modal-head">
+      <h3>Taak delen</h3>
+      <button class="icon-button" type="button" data-modal-close>×</button>
+    </div>
+    <div class="form-body">
+      <p class="muted-line">${escapeHtml(task.title)}</p>
+      <label>E-mail van gebruiker
+        <input name="email" type="email" required autocomplete="off">
+      </label>
+      ${task.sharedUsers.length ? `
+        <div class="shared-list">
+          ${task.sharedUsers.map(user => `
+            <span class="shared-user">
+              ${escapeHtml(user.email)}
+              <button type="button" data-unshare="${escapeAttribute(user.id)}" data-task-id="${escapeAttribute(task.id)}">×</button>
+            </span>
+          `).join("")}
+        </div>
+      ` : ""}
+    </div>
+    <div class="modal-actions">
+      <button class="secondary" type="button" data-modal-close>Annuleer</button>
+      <button class="primary" value="default">Delen</button>
+    </div>
+  `;
+  modalForm.onsubmit = event => {
+    event.preventDefault();
+    api(`/api/tasks/${task.id}/share`, {
+      method: "POST",
+      body: Object.fromEntries(new FormData(modalForm))
+    }).then(() => dialog.close()).catch(showError);
+  };
+  dialog.showModal();
+}
+
 function openSettingsModal() {
   modalForm.innerHTML = `
     <div class="modal-head">
@@ -359,7 +479,26 @@ function openSettingsModal() {
   dialog.showModal();
 }
 
+app.addEventListener("submit", event => {
+  const form = event.target.closest("[data-auth-form]");
+  if (!form) return;
+  event.preventDefault();
+  const mode = form.dataset.authForm;
+  requestJson(`/api/auth/${mode}`, {
+    method: "POST",
+    body: Object.fromEntries(new FormData(form))
+  })
+    .then(() => load())
+    .catch(error => renderAuth(mode, error.message));
+});
+
 app.addEventListener("click", event => {
+  const authMode = event.target.closest("[data-auth-mode]");
+  if (authMode) {
+    renderAuth(authMode.dataset.authMode);
+    return;
+  }
+
   const target = event.target.closest("[data-action]");
   if (!target) return;
   const { action, id } = target.dataset;
@@ -370,9 +509,11 @@ app.addEventListener("click", event => {
   }
   if (action === "add-task") openTaskModal();
   if (action === "edit-task") openTaskModal(state.tasks.find(task => task.id === id));
+  if (action === "share-task") openShareModal(state.tasks.find(task => task.id === id));
   if (action === "add-category") openCategoryModal();
   if (action === "edit-category") openCategoryModal(state.categories.find(category => category.id === id));
   if (action === "settings") openSettingsModal();
+  if (action === "logout") requestJson("/api/auth/logout", { method: "POST" }).then(() => load()).catch(showError);
   if (action === "done") api(`/api/tasks/${id}/done`, { method: "POST" }).catch(showError);
   if (action === "logs") {
     state.selectedTaskId = id;
@@ -403,15 +544,27 @@ modalForm.addEventListener("click", event => {
       button.classList.toggle("active", button === iconButton);
     });
   }
+
+  const unshareButton = event.target.closest("[data-unshare]");
+  if (unshareButton) {
+    api(`/api/tasks/${unshareButton.dataset.taskId}/share/${unshareButton.dataset.unshare}`, { method: "DELETE" })
+      .then(() => dialog.close())
+      .catch(showError);
+  }
 });
 
 function tasksForSelectedCategory() {
   if (state.selectedCategoryId === "all") return state.tasks;
+  if (state.selectedCategoryId === "shared") return sharedWithMeTasks();
   return tasksForCategory(state.selectedCategoryId);
 }
 
 function tasksForCategory(categoryId) {
   return state.tasks.filter(task => task.categoryId === categoryId);
+}
+
+function sharedWithMeTasks() {
+  return state.tasks.filter(task => !task.isOwner);
 }
 
 function sortedTasks(tasks) {

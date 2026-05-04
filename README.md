@@ -9,6 +9,8 @@ Docker-versie van de SwiftUI-app `Handled`, bedoeld voor privegebruik op een eig
 - Statussen: nog niet gestart, op schema, bijna weer nodig, te laat
 - `Net gedaan` actie met nieuwe volgende datum om 09:00 lokale tijd
 - Logboek per taak met gemiddelde tijd tussen acties en gemiddeld te laat
+- Login met aparte overzichten per gebruiker
+- Taken delen met andere gebruikers via e-mailadres
 - JSON-opslag in `/data/handled.json`
 
 ## Bestanden
@@ -50,7 +52,7 @@ docker compose up -d --build
 Daarna is de app bereikbaar op:
 
 ```text
-http://<server-ip>:3000
+http://<server-ip>:8005
 ```
 
 Logs bekijken:
@@ -99,6 +101,17 @@ git push -u origin main
 ```
 
 Gebruik bij voorkeur een private repo als je deze app alleen prive gebruikt.
+
+## Accounts
+
+Registratie staat standaard aan:
+
+```yaml
+ALLOW_REGISTRATION=true
+```
+
+Zet dit na het aanmaken van je gewenste accounts eventueel op `false` in `docker-compose.yml`.
+Oude taken uit een eerdere single-user versie worden automatisch gekoppeld aan de eerste gebruiker die registreert.
 
 ## Backup
 

@@ -11,6 +11,7 @@ services:
       - TZ=Europe/Amsterdam
       - PORT=3000
       - DATA_FILE=/data/handled.json
+      - ALLOW_REGISTRATION=true
 
 volumes:
   handled-data:

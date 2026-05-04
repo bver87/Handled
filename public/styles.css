@@ -41,12 +41,73 @@ button {
   min-height: 100vh;
 }
 
+.auth-shell {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+}
+
+.auth-panel {
+  width: min(420px, 100%);
+  display: grid;
+  gap: 18px;
+  padding: 22px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+}
+
+.auth-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.auth-brand img {
+  width: 46px;
+  height: 46px;
+  border-radius: 8px;
+}
+
+.auth-brand h1,
+.auth-brand p {
+  margin: 0;
+}
+
+.auth-brand h1 {
+  font-size: 24px;
+}
+
+.auth-brand p,
+.muted-line {
+  color: var(--muted);
+}
+
+.auth-form {
+  display: grid;
+  gap: 14px;
+}
+
+.auth-switch {
+  justify-self: center;
+}
+
+.form-error {
+  padding: 10px 12px;
+  border-radius: 8px;
+  color: var(--red);
+  background: #fff1f1;
+  font-weight: 700;
+}
+
 .topbar {
   position: sticky;
   top: 0;
   z-index: 5;
   display: grid;
-  grid-template-columns: 44px 1fr auto auto;
+  grid-template-columns: 44px minmax(120px, 1fr) auto auto auto auto;
   gap: 8px;
   align-items: center;
   padding: 12px max(16px, calc((100vw - 1120px) / 2));
@@ -72,6 +133,20 @@ button {
   margin: 0;
   font-size: 22px;
   line-height: 1.1;
+}
+
+.user-pill {
+  max-width: 220px;
+  overflow: hidden;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  background: white;
+  font-size: 13px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .icon-button {
@@ -450,6 +525,35 @@ select {
   background: var(--blue);
 }
 
+.shared-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.shared-user {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 8px;
+  border-radius: 999px;
+  background: #eef2f4;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.shared-user button {
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: white;
+  background: var(--red);
+  line-height: 1;
+}
+
 .summary {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -490,7 +594,12 @@ select {
 
 @media (max-width: 760px) {
   .topbar {
-    grid-template-columns: 40px 1fr auto auto;
+    grid-template-columns: 40px 1fr auto;
+  }
+
+  .topbar .user-pill,
+  .topbar [data-action="logout"] {
+    grid-column: 1 / -1;
   }
 
   .layout {
