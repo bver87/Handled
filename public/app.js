@@ -30,6 +30,58 @@ const icons = [
   "stethoscope", "airplane", "washer", "dryer", "drop", "bolt", "eurosign.circle"
 ];
 
+const iconGlyphs = {
+  "tray.full": "▣",
+  folder: "▰",
+  house: "⌂",
+  wrench: "⚙",
+  clock: "◷",
+  heart: "♡",
+  "person.2": "☷",
+  leaf: "♧",
+  tree: "♤",
+  car: "▱",
+  cart: "⌑",
+  creditcard: "▭",
+  gift: "□",
+  graduationcap: "△",
+  flame: "♢",
+  bandage: "+",
+  stethoscope: "Ω",
+  airplane: "✈",
+  washer: "◉",
+  dryer: "◎",
+  drop: "◌",
+  bolt: "ϟ",
+  "eurosign.circle": "€"
+};
+
+const iconNames = {
+  "tray.full": "Alle taken",
+  folder: "Map",
+  house: "Huis",
+  wrench: "Gereedschap",
+  clock: "Klok",
+  heart: "Hart",
+  "person.2": "Personen",
+  leaf: "Blad",
+  tree: "Boom",
+  car: "Auto",
+  cart: "Winkelwagen",
+  creditcard: "Betaalkaart",
+  gift: "Cadeau",
+  graduationcap: "Studie",
+  flame: "Vlam",
+  bandage: "Zorg",
+  stethoscope: "Medisch",
+  airplane: "Vliegtuig",
+  washer: "Wasmachine",
+  dryer: "Droger",
+  drop: "Druppel",
+  bolt: "Bliksem",
+  "eurosign.circle": "Euro"
+};
+
 const app = document.querySelector("#app");
 const dialog = document.querySelector("#modal");
 const modalForm = document.querySelector("#modal-form");
@@ -109,7 +161,7 @@ function categoryRow(category, tasks) {
   return `
     <button class="category-row${active}" data-action="select-category" data-id="${category.id}">
       <span class="category-main">
-        <span class="category-icon" style="color: var(--${category.colorName})">${iconLabel(category.icon)}</span>
+        <span class="category-icon" style="color: var(--${category.colorName})">${iconGlyph(category.icon)}</span>
         <span class="category-name">${escapeHtml(category.name)}</span>
         <span class="count">${tasks.length}</span>
       </span>
@@ -210,7 +262,7 @@ function openTaskModal(task = null) {
   modalForm.innerHTML = `
     <div class="modal-head">
       <h3>${task ? "Taak wijzigen" : "Nieuwe taak"}</h3>
-      <button class="icon-button" value="cancel" formnovalidate>×</button>
+      <button class="icon-button" type="button" data-modal-close>×</button>
     </div>
     <div class="form-body">
       <label>Titel
@@ -232,7 +284,7 @@ function openTaskModal(task = null) {
       </label>
     </div>
     <div class="modal-actions">
-      <button class="secondary" value="cancel" formnovalidate>Annuleer</button>
+      <button class="secondary" type="button" data-modal-close>Annuleer</button>
       <button class="primary" value="default">Bewaar</button>
     </div>
   `;
@@ -247,24 +299,28 @@ function openTaskModal(task = null) {
 }
 
 function openCategoryModal(category = null) {
+  const selectedIcon = category?.icon || "folder";
   modalForm.innerHTML = `
     <div class="modal-head">
       <h3>${category ? "Categorie bewerken" : "Categorie toevoegen"}</h3>
-      <button class="icon-button" value="cancel" formnovalidate>×</button>
+      <button class="icon-button" type="button" data-modal-close>×</button>
     </div>
     <div class="form-body">
       <label>Naam
         <input name="name" required value="${escapeAttribute(category?.name || "")}" autocomplete="off">
       </label>
       <label>Icoon
-        <select name="icon">${icons.map(icon => option(icon, icon, category?.icon || "folder")).join("")}</select>
+        <input type="hidden" name="icon" value="${escapeAttribute(selectedIcon)}">
+        <span class="icon-picker">
+          ${icons.map(icon => iconChoice(icon, selectedIcon)).join("")}
+        </span>
       </label>
       <label>Kleur
         <select name="colorName">${colors.map(([value, label]) => option(value, label, category?.colorName || "blue")).join("")}</select>
       </label>
     </div>
     <div class="modal-actions">
-      <button class="secondary" value="cancel" formnovalidate>Annuleer</button>
+      <button class="secondary" type="button" data-modal-close>Annuleer</button>
       <button class="primary" value="default">Bewaar</button>
     </div>
   `;
@@ -282,7 +338,7 @@ function openSettingsModal() {
   modalForm.innerHTML = `
     <div class="modal-head">
       <h3>Instellingen</h3>
-      <button class="icon-button" value="cancel" formnovalidate>×</button>
+      <button class="icon-button" type="button" data-modal-close>×</button>
     </div>
     <div class="form-body">
       <label>Herinnering vooraf in dagen
@@ -290,7 +346,7 @@ function openSettingsModal() {
       </label>
     </div>
     <div class="modal-actions">
-      <button class="secondary" value="cancel" formnovalidate>Annuleer</button>
+      <button class="secondary" type="button" data-modal-close>Annuleer</button>
       <button class="primary" value="default">Bewaar</button>
     </div>
   `;
@@ -332,6 +388,20 @@ app.addEventListener("click", event => {
   }
   if (action === "delete-category" && confirm("Categorie verwijderen? Taken blijven bestaan.")) {
     api(`/api/categories/${id}`, { method: "DELETE" }).catch(showError);
+  }
+});
+
+modalForm.addEventListener("click", event => {
+  if (event.target.closest("[data-modal-close]")) {
+    dialog.close();
+  }
+
+  const iconButton = event.target.closest("[data-icon-choice]");
+  if (iconButton) {
+    modalForm.elements.icon.value = iconButton.dataset.iconChoice;
+    modalForm.querySelectorAll("[data-icon-choice]").forEach(button => {
+      button.classList.toggle("active", button === iconButton);
+    });
   }
 });
 
@@ -428,9 +498,17 @@ function unitLabel(value) {
   return units.find(([unit]) => unit === value)?.[1] || value;
 }
 
-function iconLabel(icon) {
-  const parts = icon.split(/[.-]/).filter(Boolean);
-  return (parts[0]?.slice(0, 2) || "ca").toUpperCase();
+function iconGlyph(icon) {
+  return iconGlyphs[icon] || "•";
+}
+
+function iconChoice(icon, selectedIcon) {
+  const active = icon === selectedIcon ? " active" : "";
+  return `
+    <button class="icon-choice${active}" type="button" data-icon-choice="${escapeAttribute(icon)}" title="${escapeAttribute(iconNames[icon] || icon)}">
+      ${iconGlyph(icon)}
+    </button>
+  `;
 }
 
 function option(value, label, selected) {
