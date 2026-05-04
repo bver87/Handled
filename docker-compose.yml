@@ -1,0 +1,16 @@
+services:
+  handled:
+    build: .
+    container_name: handled
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - handled-data:/data
+    environment:
+      - TZ=Europe/Amsterdam
+      - PORT=3000
+      - DATA_FILE=/data/handled.json
+
+volumes:
+  handled-data:

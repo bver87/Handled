@@ -1,0 +1,13 @@
+{
+  "name": "handled-web",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Private Docker-hosted web version of the Handled SwiftUI app.",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
