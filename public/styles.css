@@ -283,6 +283,17 @@ button {
   font-weight: 800;
 }
 
+.symbol-icon {
+  width: 20px;
+  height: 20px;
+  display: block;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 .category-name,
 .task-title {
   font-weight: 750;
@@ -524,6 +535,11 @@ select {
   color: var(--text);
   font-size: 19px;
   font-weight: 800;
+}
+
+.icon-choice .symbol-icon {
+  width: 22px;
+  height: 22px;
 }
 
 .icon-choice:hover {

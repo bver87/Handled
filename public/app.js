@@ -34,32 +34,6 @@ const icons = [
   "stethoscope", "airplane", "washer", "dryer", "drop", "bolt", "eurosign.circle"
 ];
 
-const iconGlyphs = {
-  "tray.full": "▣",
-  "person.2": "☷",
-  "eurosign.circle": "€",
-  folder: "▰",
-  house: "⌂",
-  wrench: "⚙",
-  clock: "◷",
-  heart: "♡",
-  leaf: "♧",
-  tree: "♤",
-  car: "▱",
-  cart: "⌑",
-  creditcard: "▭",
-  gift: "□",
-  graduationcap: "△",
-  flame: "♢",
-  bandage: "+",
-  stethoscope: "Ω",
-  airplane: "✈",
-  washer: "◉",
-  dryer: "◎",
-  drop: "◌",
-  bolt: "ϟ"
-};
-
 const iconNames = {
   "tray.full": "Alle taken",
   "person.2": "Personen",
@@ -249,7 +223,7 @@ function categoryRow(category, tasks) {
   return `
     <button class="category-row${active}" data-action="select-category" data-id="${category.id}">
       <span class="category-main">
-        <span class="category-icon" style="color: var(--${category.colorName})">${iconGlyph(category.icon)}</span>
+        <span class="category-icon" style="color: var(--${category.colorName})">${iconSvg(category.icon)}</span>
         <span class="category-name">${escapeHtml(category.name)}</span>
         <span class="count">${tasks.length}</span>
       </span>
@@ -689,15 +663,40 @@ function authSubmitLabel(mode) {
   return mode === "register" ? "Account maken" : "Inloggen";
 }
 
-function iconGlyph(icon) {
-  return iconGlyphs[icon] || "•";
+function iconSvg(icon) {
+  const paths = {
+    "tray.full": '<path d="M4 14h4l2 3h4l2-3h4"/><path d="M5 4h14l2 10v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-5L5 4Z"/>',
+    "person.2": '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+    "eurosign.circle": '<circle cx="12" cy="12" r="9"/><path d="M15.5 8.5a4.5 4.5 0 1 0 0 7"/><path d="M7 10.5h7"/><path d="M7 13.5h6"/>',
+    folder: '<path d="M3 6.5A2.5 2.5 0 0 1 5.5 4H10l2 2h6.5A2.5 2.5 0 0 1 21 8.5v8A2.5 2.5 0 0 1 18.5 19h-13A2.5 2.5 0 0 1 3 16.5v-10Z"/>',
+    house: '<path d="m3 11 9-8 9 8"/><path d="M5 10v10h5v-6h4v6h5V10"/>',
+    wrench: '<path d="M14.7 6.3a4 4 0 0 0 5 5L11 20a2.1 2.1 0 0 1-3-3l8.7-8.7a4 4 0 0 0-2-2Z"/>',
+    clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+    heart: '<path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 1 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8Z"/>',
+    leaf: '<path d="M21 3S6 4 4 14a6 6 0 0 0 6 7c10-2 11-18 11-18Z"/><path d="M4 20c4-6 9-9 17-17"/>',
+    tree: '<path d="M12 22v-7"/><path d="M7 15h10l-3-4h2l-4-7-4 7h2l-3 4Z"/>',
+    car: '<path d="M5 17h14l1-6-2-5H6l-2 5 1 6Z"/><circle cx="7.5" cy="17" r="1.5"/><circle cx="16.5" cy="17" r="1.5"/><path d="M4 11h16"/>',
+    cart: '<circle cx="9" cy="20" r="1"/><circle cx="17" cy="20" r="1"/><path d="M3 4h2l2.4 11.5A2 2 0 0 0 9.4 17H17a2 2 0 0 0 2-1.6L20 8H6"/>',
+    creditcard: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18"/><path d="M7 15h4"/>',
+    gift: '<rect x="3" y="8" width="18" height="13" rx="2"/><path d="M12 8v13"/><path d="M3 12h18"/><path d="M7.5 8A2.5 2.5 0 1 1 12 6.5V8"/><path d="M16.5 8A2.5 2.5 0 1 0 12 6.5V8"/>',
+    graduationcap: '<path d="M22 10 12 5 2 10l10 5 10-5Z"/><path d="M6 12v5c3 2 9 2 12 0v-5"/><path d="M22 10v6"/>',
+    flame: '<path d="M12 22a7 7 0 0 0 7-7c0-4-3-7-4-10-2 2-3 4-3 6-2-1-3-3-3-5-2 2-4 5-4 9a7 7 0 0 0 7 7Z"/>',
+    bandage: '<rect x="3" y="8" width="18" height="8" rx="3" transform="rotate(-35 12 12)"/><path d="M10 10h.01"/><path d="M14 14h.01"/><path d="M12 12h.01"/>',
+    stethoscope: '<path d="M6 4v5a4 4 0 0 0 8 0V4"/><path d="M10 13v3a4 4 0 0 0 8 0v-2"/><circle cx="18" cy="12" r="2"/>',
+    airplane: '<path d="M22 2 11 13"/><path d="m22 2-7 20-4-9-9-4 20-7Z"/>',
+    washer: '<rect x="5" y="3" width="14" height="18" rx="2"/><circle cx="12" cy="13" r="5"/><path d="M8 7h.01"/><path d="M11 7h5"/>',
+    dryer: '<rect x="5" y="3" width="14" height="18" rx="2"/><circle cx="12" cy="13" r="5"/><path d="M9 13c2-2 4 2 6 0"/><path d="M8 7h.01"/><path d="M11 7h5"/>',
+    drop: '<path d="M12 22a7 7 0 0 0 7-7c0-5-7-13-7-13S5 10 5 15a7 7 0 0 0 7 7Z"/>',
+    bolt: '<path d="M13 2 4 14h7l-1 8 10-13h-7l1-7Z"/>'
+  };
+  return `<svg class="symbol-icon" viewBox="0 0 24 24" aria-hidden="true">${paths[icon] || paths.folder}</svg>`;
 }
 
 function iconChoice(icon, selectedIcon) {
   const active = icon === selectedIcon ? " active" : "";
   return `
     <button class="icon-choice${active}" type="button" data-icon-choice="${escapeAttribute(icon)}" title="${escapeAttribute(iconNames[icon] || icon)}">
-      ${iconGlyph(icon)}
+      ${iconSvg(icon)}
     </button>
   `;
 }
