@@ -123,6 +123,10 @@ button {
   backdrop-filter: blur(14px);
 }
 
+.topbar > button {
+  white-space: nowrap;
+}
+
 .brand {
   display: flex;
   gap: 10px;
@@ -601,12 +605,43 @@ select {
 
 @media (max-width: 760px) {
   .topbar {
-    grid-template-columns: 40px 1fr auto;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 10px;
+    padding: 12px 16px;
+  }
+
+  .topbar .icon-button {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .topbar .brand {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: start;
   }
 
   .topbar .user-pill,
   .topbar [data-action="logout"] {
     grid-column: 1 / -1;
+    width: 100%;
+    max-width: none;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .topbar [data-action="add-category"],
+  .topbar [data-action="add-task"] {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .topbar [data-action="add-category"] {
+    grid-column: 1;
+  }
+
+  .topbar [data-action="add-task"] {
+    grid-column: 2;
   }
 
   .layout {
