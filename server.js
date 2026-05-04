@@ -19,6 +19,7 @@ const port = Number(process.env.PORT || 3000);
 const dataFile = process.env.DATA_FILE || join(__dirname, "data", "handled.json");
 const allowRegistration = process.env.ALLOW_REGISTRATION !== "false";
 const sessionTtlMs = 1000 * 60 * 60 * 24 * 30;
+const passwordResetTtlMs = 1000 * 60 * 30;
 
 const units = new Set(["days", "weeks", "months", "years"]);
 let writeQueue = Promise.resolve();
@@ -38,6 +39,7 @@ function emptyStore() {
     settings: { leadTimeDays: 0 },
     users: [],
     sessions: [],
+    passwordResets: [],
     categories: [],
     tasks: [],
     logs: []
@@ -70,6 +72,7 @@ function normalizeStore(input) {
   store.settings = { leadTimeDays: 0, ...(store.settings || {}) };
   store.users = Array.isArray(store.users) ? store.users : [];
   store.sessions = Array.isArray(store.sessions) ? store.sessions : [];
+  store.passwordResets = Array.isArray(store.passwordResets) ? store.passwordResets : [];
   store.categories = Array.isArray(store.categories) ? store.categories : [];
   store.tasks = Array.isArray(store.tasks) ? store.tasks : [];
   store.logs = Array.isArray(store.logs) ? store.logs : [];
@@ -284,6 +287,12 @@ function validateCategoryPayload(payload, existing = {}) {
   };
 }
 
+function publicBaseUrl(req) {
+  const proto = req.headers["x-forwarded-proto"] || "http";
+  const host = req.headers["x-forwarded-host"] || req.headers.host;
+  return `${proto}://${host}`;
+}
+
 async function handleAuth(req, res, path, store) {
   if (req.method === "GET" && path === "/api/auth/me") {
     return sendJson(res, 200, {
@@ -324,6 +333,53 @@ async function handleAuth(req, res, path, store) {
     if (!user || !(await verifyPassword(password, user.passwordHash))) {
       return sendJson(res, 400, { error: "E-mail of wachtwoord klopt niet." });
     }
+    const cookie = await createSession(store, user);
+    return sendJson(res, 200, { user: publicUser(user) }, { "Set-Cookie": cookie });
+  }
+
+  if (req.method === "POST" && path === "/api/auth/forgot") {
+    const payload = await readBody(req);
+    const email = cleanEmail(payload.email);
+    const user = store.users.find(item => item.email === email);
+
+    if (user) {
+      const rawToken = randomBytes(32).toString("base64url");
+      const now = Date.now();
+      store.passwordResets = store.passwordResets.filter(reset => reset.expiresAt > now && reset.usedAt == null);
+      store.passwordResets.push({
+        id: randomUUID(),
+        userId: user.id,
+        tokenHash: hashToken(rawToken),
+        expiresAt: now + passwordResetTtlMs,
+        createdAt: new Date().toISOString(),
+        usedAt: null
+      });
+      await saveStore(store);
+      console.log(`[Handled] Wachtwoord reset voor ${user.email}: ${publicBaseUrl(req)}/?reset=${rawToken}`);
+    }
+
+    return sendJson(res, 200, {
+      ok: true,
+      message: "Als dit account bestaat, staat er een tijdelijke resetlink in de serverlogs."
+    });
+  }
+
+  if (req.method === "POST" && path === "/api/auth/reset") {
+    const payload = await readBody(req);
+    const tokenHash = hashToken(String(payload.token || ""));
+    const password = String(payload.password || "");
+    if (password.length < 8) return sendJson(res, 400, { error: "Wachtwoord moet minimaal 8 tekens zijn." });
+
+    const now = Date.now();
+    const reset = store.passwordResets.find(item => item.tokenHash === tokenHash && item.usedAt == null && item.expiresAt > now);
+    if (!reset) return sendJson(res, 400, { error: "Resetlink is ongeldig of verlopen." });
+
+    const user = store.users.find(item => item.id === reset.userId);
+    if (!user) return sendJson(res, 400, { error: "Gebruiker niet gevonden." });
+
+    user.passwordHash = await hashPassword(password);
+    reset.usedAt = now;
+    store.sessions = store.sessions.filter(session => session.userId !== user.id);
     const cookie = await createSession(store, user);
     return sendJson(res, 200, { user: publicUser(user) }, { "Set-Cookie": cookie });
   }

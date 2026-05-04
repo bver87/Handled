@@ -117,14 +117,22 @@ async function load() {
   const auth = await requestJson("/api/auth/me");
   Object.assign(state, auth);
   if (!state.user) {
+    const resetToken = new URLSearchParams(window.location.search).get("reset");
+    if (resetToken) {
+      renderAuth("reset", "", resetToken);
+      return;
+    }
     renderAuth();
     return;
   }
   await api("/api/state");
 }
 
-function renderAuth(mode = state.hasUsers ? "login" : "register", error = "") {
+function renderAuth(mode = state.hasUsers ? "login" : "register", error = "", token = "") {
   const isRegister = mode === "register";
+  const isForgot = mode === "forgot";
+  const isReset = mode === "reset";
+  const title = isReset ? "Kies een nieuw wachtwoord" : isForgot ? "Wachtwoord vergeten" : isRegister ? "Maak je account aan." : "Log in op je overzicht.";
   app.innerHTML = `
     <main class="auth-shell">
       <section class="auth-panel">
@@ -132,29 +140,38 @@ function renderAuth(mode = state.hasUsers ? "login" : "register", error = "") {
           <img src="/handled.png" alt="">
           <div>
             <h1>Handled</h1>
-            <p>${isRegister ? "Maak je account aan." : "Log in op je overzicht."}</p>
+            <p>${title}</p>
           </div>
         </div>
         ${error ? `<div class="form-error">${escapeHtml(error)}</div>` : ""}
-        <form class="auth-form" data-auth-form="${isRegister ? "register" : "login"}">
+        <form class="auth-form" data-auth-form="${authFormMode(mode)}">
+          ${isReset ? `<input type="hidden" name="token" value="${escapeAttribute(token)}">` : ""}
           ${isRegister ? `
             <label>Naam
               <input name="name" autocomplete="name" required>
             </label>
           ` : ""}
-          <label>E-mail
-            <input name="email" type="email" autocomplete="email" required>
-          </label>
-          <label>Wachtwoord
-            <input name="password" type="password" autocomplete="${isRegister ? "new-password" : "current-password"}" minlength="8" required>
-          </label>
-          <button class="primary" type="submit">${isRegister ? "Account maken" : "Inloggen"}</button>
+          ${!isReset ? `
+            <label>E-mail
+              <input name="email" type="email" autocomplete="email" required>
+            </label>
+          ` : ""}
+          ${!isForgot ? `
+            <label>${isReset ? "Nieuw wachtwoord" : "Wachtwoord"}
+              <input name="password" type="password" autocomplete="${isRegister || isReset ? "new-password" : "current-password"}" minlength="8" required>
+            </label>
+          ` : ""}
+          <button class="primary" type="submit">${authSubmitLabel(mode)}</button>
         </form>
-        ${state.allowRegistration ? `
-          <button class="ghost auth-switch" data-auth-mode="${isRegister ? "login" : "register"}">
-            ${isRegister ? "Ik heb al een account" : "Nieuw account maken"}
-          </button>
-        ` : ""}
+        <div class="auth-links">
+          ${!isForgot && !isReset ? `<button class="ghost auth-switch" data-auth-mode="forgot">Wachtwoord vergeten</button>` : ""}
+          ${state.allowRegistration && !isReset ? `
+            <button class="ghost auth-switch" data-auth-mode="${isRegister ? "login" : "register"}">
+              ${isRegister ? "Ik heb al een account" : "Nieuw account maken"}
+            </button>
+          ` : ""}
+          ${isForgot || isReset ? `<button class="ghost auth-switch" data-auth-mode="login">Terug naar inloggen</button>` : ""}
+        </div>
       </section>
     </main>
   `;
@@ -488,7 +505,16 @@ app.addEventListener("submit", event => {
     method: "POST",
     body: Object.fromEntries(new FormData(form))
   })
-    .then(() => load())
+    .then(payload => {
+      if (mode === "forgot") {
+        renderAuth("forgot", payload.message || "Controleer de serverlogs voor de resetlink.");
+        return;
+      }
+      if (mode === "reset") {
+        window.history.replaceState({}, "", window.location.pathname);
+      }
+      load();
+    })
     .catch(error => renderAuth(mode, error.message));
 });
 
@@ -649,6 +675,18 @@ function averageInterval(logs) {
 
 function unitLabel(value) {
   return units.find(([unit]) => unit === value)?.[1] || value;
+}
+
+function authFormMode(mode) {
+  if (mode === "forgot") return "forgot";
+  if (mode === "reset") return "reset";
+  return mode === "register" ? "register" : "login";
+}
+
+function authSubmitLabel(mode) {
+  if (mode === "forgot") return "Resetlink maken";
+  if (mode === "reset") return "Wachtwoord wijzigen";
+  return mode === "register" ? "Account maken" : "Inloggen";
 }
 
 function iconGlyph(icon) {

@@ -94,11 +94,18 @@ button {
   justify-self: center;
 }
 
+.auth-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+
 .form-error {
   padding: 10px 12px;
   border-radius: 8px;
-  color: var(--red);
-  background: #fff1f1;
+  color: var(--text);
+  background: #eef2f4;
   font-weight: 700;
 }
 

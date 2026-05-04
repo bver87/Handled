@@ -10,6 +10,7 @@ Docker-versie van de SwiftUI-app `Handled`, bedoeld voor privegebruik op een eig
 - `Net gedaan` actie met nieuwe volgende datum om 09:00 lokale tijd
 - Logboek per taak met gemiddelde tijd tussen acties en gemiddeld te laat
 - Login met aparte overzichten per gebruiker
+- Wachtwoord-reset via tijdelijke resetlink in de serverlogs
 - Taken delen met andere gebruikers via e-mailadres
 - JSON-opslag in `/data/handled.json`
 
@@ -112,6 +113,22 @@ ALLOW_REGISTRATION=true
 
 Zet dit na het aanmaken van je gewenste accounts eventueel op `false` in `docker-compose.yml`.
 Oude taken uit een eerdere single-user versie worden automatisch gekoppeld aan de eerste gebruiker die registreert.
+
+## Wachtwoord vergeten
+
+Omdat deze app geen e-mailserver nodig heeft, werkt resetten via de serverlogs:
+
+1. Klik op `Wachtwoord vergeten` op het login scherm.
+2. Vul het e-mailadres in.
+3. Open de logs:
+
+```sh
+docker compose logs -f
+```
+
+4. Kopieer de resetlink uit de logregel die begint met `[Handled] Wachtwoord reset`.
+
+De resetlink is 30 minuten geldig en wordt alleen gehasht opgeslagen in `/data/handled.json`.
 
 ## Backup
 
